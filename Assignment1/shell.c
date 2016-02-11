@@ -90,7 +90,7 @@ struct Command * getCmd(){
     
     //Now it's time to parse the line that user entered
     int argCount = 0;
-    while ((token = strsep(&line, " \t\n")) != NULL || argCount < 10) {
+    while ((token = strsep(&line, " \t\n")) != NULL && argCount < 10) {
         for (int j = 0; j < strlen(token); j++)
             if (token[j] <= 32)
                 token[j] = '\0';
@@ -118,33 +118,63 @@ int addToHistory(struct Command *cmd){
     return 0;
 }
 
+/*
+ This frees the struct representing a particular command
+ */
+int freeCmd(struct Command *cmd){
+    free(cmd);
+    return 0;
+}
+
+/*
+ This will print the entire command on the same line
+*/
+int printCommand(struct Command *cmd){
+    int i=0;
+    while (strcmp(cmd->args[i],"") != 0 && cmd->args[i] != NULL) {
+        printf("%s ",cmd->args[i]);
+    }
+    return 0;
+}
+
+/*
+    This function will take in a command struct and run the command 
+    based off of the contents of the struct
+*/
 int runCmd(struct Command *cmd){
     //If the command is a built in Command ->'history', 'cd', 'pwd', 'exit', 'fg', 'jobs', '>(redirection)'
     if (strcmp(cmd->args[0], "history") == 0) {
-        //
+        printf("test");
     }else if (strcmp(cmd->args[0], "cd") == 0) {
-        //
+        printf("test");
     }
     else if (strcmp(cmd->args[0], "pwd") == 0) {
-        //
+        printf("test");
     }
     else if (strcmp(cmd->args[0], "exit") == 0) {
-        //
+        printf("test");
     }else if (strcmp(cmd->args[0], "fg") == 0) {
-        //
+        printf("test");
     }else if (strcmp(cmd->args[0], "jobs") == 0) {
-        //
+        printf("test");
     }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">")) {
-        //
+        printf("test");
     }else{
+        /* CHILD PROCESS RUNS IN HERE */
+        
         //Else the command is not a built in Command, run using ExecVp
         //Run it if and only if the error flag is 0, if 1 then we print 'this was a bad command last time'
         if (cmd->error != 1) {
             //Create a child process and run the command using execvp
-
+            printf("Running the command!! %s \n",cmd->args[0]);
             
             //If the command doesn't execute set it as a failed command
-            cmd->error = 1;
+            cmd->error = 1; // THIS SHOULD BE 1
+        }else{
+            //Last time we executed the command it failed, warn the user
+            printf("The command: ");
+            printCommand(cmd);
+            printf(" failed to execute last time, not entering it into history");
         }
         
         if(cmd->bg == 0 && cmd->error == 0){
@@ -152,20 +182,17 @@ int runCmd(struct Command *cmd){
         }
     }
     
-    //The command should have been executed at this point, add it to history, if it didn't fail
+    //The command should have executed by this point, add it to history if it didn't fail
     if (cmd->error != 1) {
         addToHistory(cmd);
+    }else{
+        //If was a bad command or we don't want to add the command to history, free the cmd
+        freeCmd(cmd);
     }
     
-    
-    
-    //If the command was a bad command, then set the error flag to be 1
     return 0;
 }
 
-int freeCmd(){
-    return 0;
-}
 
 
 int main(){
@@ -176,7 +203,7 @@ int main(){
         currentCmd = getCmd();
         //printf("Command: %d Argument(s): %s\n",currentCmd->num, currentCmd->args[0]);
         
-        //Then run the users command
+        //Then run the users command, also adds to history
         runCmd(currentCmd);
         
         

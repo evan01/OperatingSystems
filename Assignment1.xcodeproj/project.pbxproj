@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		A11C0C5F1C6C2561000270F2 /* shell.c in Sources */ = {isa = PBXBuildFile; fileRef = A11C0C5E1C6C2561000270F2 /* shell.c */; };
-		A1D3EE221C67E7510081E29E /* execute.c in Sources */ = {isa = PBXBuildFile; fileRef = A1D3EE211C67E7510081E29E /* execute.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,7 +24,6 @@
 
 /* Begin PBXFileReference section */
 		A11C0C5E1C6C2561000270F2 /* shell.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = shell.c; sourceTree = "<group>"; };
-		A1D3EE211C67E7510081E29E /* execute.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = execute.c; sourceTree = "<group>"; };
 		A1FD7E071C5ECDBC00D040CA /* Assignment1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Assignment1; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -60,7 +58,6 @@
 			isa = PBXGroup;
 			children = (
 				A11C0C5E1C6C2561000270F2 /* shell.c */,
-				A1D3EE211C67E7510081E29E /* execute.c */,
 			);
 			path = Assignment1;
 			sourceTree = "<group>";
@@ -122,7 +119,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A11C0C5F1C6C2561000270F2 /* shell.c in Sources */,
-				A1D3EE221C67E7510081E29E /* execute.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
