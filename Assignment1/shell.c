@@ -126,6 +126,9 @@ int freeCmd(struct Command *cmd){
     return 0;
 }
 
+int exitShell(){
+    exit(0);
+}
 /*
  This will print the entire command on the same line
 */
@@ -133,6 +136,38 @@ int printCommand(struct Command *cmd){
     int i=0;
     while (strcmp(cmd->args[i],"") != 0 && cmd->args[i] != NULL) {
         printf("%s ",cmd->args[i]);
+    }
+    return 0;
+}
+
+/*
+    This function will take in a command struct and run the command args in a child process
+*/
+int runChildProcess(struct Command *cmd){
+    int pid,status;
+    
+    if ((pid = fork())<0) {
+        printf("Failed to fork a child process, shell exiting\n");
+        exitShell();
+    }else if (pid == 0){
+        /* In CHILD PROCESS */
+        char *command;
+        //Format args to be passed into the exec vp function
+        strcpy(command,cmd->args[0]);
+        char *argv[10];
+        for(int i=0;i<9;i++){
+            strcpy(argv[i],cmd->args[i]);
+        }
+        if ((execvp(command, argv)) < 0) {
+            printf("Invalid command, failed to run\n");
+        }
+        exit(0); // Make sure to terminate the child process! Or else things get wierd...
+    }else{
+        /* In PARENT PROCESS */
+        if(cmd->bg == 0){
+            //We have to wait for the process to finish
+            while (wait(&status) != pid);
+        }
     }
     return 0;
 }
@@ -160,13 +195,12 @@ int runCmd(struct Command *cmd){
     }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">")) {
         printf("test");
     }else{
-        /* CHILD PROCESS RUNS IN HERE */
-        
-        //Else the command is not a built in Command, run using ExecVp
-        //Run it if and only if the error flag is 0, if 1 then we print 'this was a bad command last time'
+        //Else the command is not a built in Command, run using ExecVp in CHILD PROCESS
         if (cmd->error != 1) {
             //Create a child process and run the command using execvp
             printf("Running the command!! %s \n",cmd->args[0]);
+            
+            int pid = runChildProcess(cmd);
             
             //If the command doesn't execute set it as a failed command
             cmd->error = 1; // THIS SHOULD BE 1
