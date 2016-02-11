@@ -48,6 +48,7 @@ struct Command{
     char args[10][64]; //The actual arguments passed by the user
     int argCount;
     int error; //When the command runs, whether it failed or not
+    int pid; //For keeping track of background jobs (for fg and jobs)
 };
 
 /*
@@ -167,6 +168,11 @@ int runChildProcess(struct Command *cmd){
         if(cmd->bg == 0){
             //We have to wait for the process to finish
             while (wait(&status) != pid);
+        }else{
+            //We store the pid of the child process, for later
+            cmd->pid = pid;
+            
+            //We also may to know if the process failed or not... using pipes apparently
         }
     }
     return 0;
@@ -192,7 +198,7 @@ int runCmd(struct Command *cmd){
         printf("test");
     }else if (strcmp(cmd->args[0], "jobs") == 0) {
         printf("test");
-    }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">")) {
+    }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">") ==0) {
         printf("test");
     }else{
         //Else the command is not a built in Command, run using ExecVp in CHILD PROCESS
@@ -200,10 +206,11 @@ int runCmd(struct Command *cmd){
             //Create a child process and run the command using execvp
             printf("Running the command!! %s \n",cmd->args[0]);
             
-            int pid = runChildProcess(cmd);
+            //Run the Command!
+            runChildProcess(cmd);
             
             //If the command doesn't execute set it as a failed command
-            cmd->error = 1; // THIS SHOULD BE 1
+            //cmd->error = 1; // THIS SHOULD BE 1
         }else{
             //Last time we executed the command it failed, warn the user
             printf("The command: ");
@@ -211,9 +218,6 @@ int runCmd(struct Command *cmd){
             printf(" failed to execute last time, not entering it into history");
         }
         
-        if(cmd->bg == 0 && cmd->error == 0){
-            //If we are running in the fg, then wait on the new process to finish (assuming it didn't fail)
-        }
     }
     
     //The command should have executed by this point, add it to history if it didn't fail
