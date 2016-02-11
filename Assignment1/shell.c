@@ -99,6 +99,10 @@ struct Command * getCmd(){
             strcpy(cmd->args[argCount], token);
         argCount++;
     }
+    //Fix args, so that they are valid when passed to execvp
+    for (int k=argCount-1; k<10; k++) {
+        strcpy(cmd->args[k], "");
+    }
     
     //If the line is just a number then look up that number in history,
         //Update the new struct accordingly to that commands struct aa
@@ -152,16 +156,16 @@ int runChildProcess(struct Command *cmd){
         exitShell();
     }else if (pid == 0){
         /* In CHILD PROCESS */
-        char *command;
+//        char *command;
         //Format args to be passed into the exec vp function
-        strcpy(command,cmd->args[0]);
-        char *argv[10];
-        for(int i=0;i<9;i++){
-            strcpy(argv[i],cmd->args[i]);
-        }
-        if ((execvp(command, argv)) < 0) {
-            printf("Invalid command, failed to run\n");
-        }
+//        strcpy(command,cmd->args[0]);
+//        char *argv[10];
+//        for(int i=0;i<9;i++){
+//            strcpy(argv[i],cmd->args[i]);
+//        }
+//        if ((execvp(command, argv)) < 0) {
+//            printf("Invalid command, failed to run\n");
+//        }
         exit(0); // Make sure to terminate the child process! Or else things get wierd...
     }else{
         /* In PARENT PROCESS */
@@ -174,6 +178,20 @@ int runChildProcess(struct Command *cmd){
             
             //We also may to know if the process failed or not... using pipes apparently
         }
+        
+        /**TESTING**/
+        char *command = (char *)malloc(64);
+        //Format args to be passed into the exec vp function
+        strcpy(command,cmd->args[0]);
+        char **argv = (char **)malloc(10*sizeof(command));
+        for(int i=0;i<9;i++){
+            argv[i] = malloc(sizeof(command));
+            strcpy(argv[i],cmd->args[i]); //Can't do this because argv[i] isn't initialized
+        }
+        if ((execvp(command, argv)) < 0) {
+            printf("Invalid command, failed to run\n");
+        }
+        /**END TESTING**/
     }
     return 0;
 }
