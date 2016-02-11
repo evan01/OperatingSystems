@@ -100,7 +100,7 @@ struct Command * getCmd(){
     }
     
     //If the line is just a number then look up that number in history,
-        //Update the new struct accordingly to that commands struct
+        //Update the new struct accordingly to that commands struct aa
     
     //Update the rest of the struct!
     cmd->argCount = argCount;
