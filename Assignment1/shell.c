@@ -90,7 +90,7 @@ struct Command * getCmd(){
     
     //Now it's time to parse the line that user entered
     int argCount = 0;
-    while ((token = strsep(&line, " \t\n")) != NULL) {
+    while ((token = strsep(&line, " \t\n")) != NULL || argCount < 10) {
         for (int j = 0; j < strlen(token); j++)
             if (token[j] <= 32)
                 token[j] = '\0';
@@ -110,12 +110,55 @@ struct Command * getCmd(){
     return cmd;
 }
 
-int runCmd(){
-    //If the command is a built in Command
-        //If 'history', 'cd', 'pwd', 'exit', 'fg', 'jobs'
-    
-    //Else the command is not a built in Command, run using ExecVp
+int addToHistory(struct Command *cmd){
+    //We want to the tail of cmd to point to the head of our list
+    cmd->next = head;
+    head = cmd;
+    //Then update the head pointer
+    return 0;
+}
+
+int runCmd(struct Command *cmd){
+    //If the command is a built in Command ->'history', 'cd', 'pwd', 'exit', 'fg', 'jobs', '>(redirection)'
+    if (strcmp(cmd->args[0], "history") == 0) {
+        //
+    }else if (strcmp(cmd->args[0], "cd") == 0) {
+        //
+    }
+    else if (strcmp(cmd->args[0], "pwd") == 0) {
+        //
+    }
+    else if (strcmp(cmd->args[0], "exit") == 0) {
+        //
+    }else if (strcmp(cmd->args[0], "fg") == 0) {
+        //
+    }else if (strcmp(cmd->args[0], "jobs") == 0) {
+        //
+    }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">")) {
+        //
+    }else{
+        //Else the command is not a built in Command, run using ExecVp
         //Run it if and only if the error flag is 0, if 1 then we print 'this was a bad command last time'
+        if (cmd->error != 1) {
+            //Create a child process and run the command using execvp
+
+            
+            //If the command doesn't execute set it as a failed command
+            cmd->error = 1;
+        }
+        
+        if(cmd->bg == 0 && cmd->error == 0){
+            //If we are running in the fg, then wait on the new process to finish (assuming it didn't fail)
+        }
+    }
+    
+    //The command should have been executed at this point, add it to history, if it didn't fail
+    if (cmd->error != 1) {
+        addToHistory(cmd);
+    }
+    
+    
+    
     //If the command was a bad command, then set the error flag to be 1
     return 0;
 }
@@ -127,10 +170,14 @@ int freeCmd(){
 
 int main(){
     initializeCmdList();//Need to initialize the linked list
+    struct Command *currentCmd;
     while (1) {
         //first get the users command
-        getCmd();
+        currentCmd = getCmd();
+        //printf("Command: %d Argument(s): %s\n",currentCmd->num, currentCmd->args[0]);
         
+        //Then run the users command
+        runCmd(currentCmd);
         
         
         
