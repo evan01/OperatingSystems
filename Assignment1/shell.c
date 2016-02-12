@@ -75,7 +75,10 @@ struct Command * getCmd(){
     //int i = 0;
     //Create a struct representing the command, allocate memory for it
     struct Command *cmd = (struct Command*)malloc(sizeof(struct Command));
-    
+    for (int i=0; i<10; i++) {
+        strcpy(cmd->args[i], "");
+    }
+
     //Prompt the user to enter a command and store it as a line -->The ONLY USER INTERACTION
     printf("Shell>>");
     char *line = (char *) malloc (MAXLINE+1);
@@ -138,8 +141,9 @@ int exitShell(){
 */
 int printCommand(struct Command *cmd){
     int i=0;
-    while (cmd->args[i] != NULL) {
+    while (strcmp(cmd->args[i],"")!= 0) {
         printf("%s ",cmd->args[i]);
+        i++;
     }
     return 0;
 }
@@ -147,7 +151,8 @@ int printCommand(struct Command *cmd){
 //print current directory
 int pwd(){
     char buffer[100];
-    getcwd(buffer, NAME_MAX);
+    size_t bufsize = 100;
+    getcwd(buffer, bufsize);
     printf("CWD is: %s\n",buffer);
     return 0;
 }
@@ -193,6 +198,7 @@ int printHistory(){
         //Then print the users command
         printCommand(node);
         
+        printf("\n");
         //Then update the node
         node=node->next;
     }
@@ -212,8 +218,6 @@ int runChildProcess(struct Command *cmd){
     }else if (pid == 0){
         char *command = (char *)malloc(64);
         //Format args to be passed into the exec vp function
-        //strcpy(command,cmd->args[0]);
-        //char **argv = (char **)malloc(10*sizeof(command));
         char *argv[64] = {NULL};
         for(int i=0;i<(cmd->argCount)-1;i++){
             argv[i] = malloc(sizeof(command));
@@ -256,9 +260,9 @@ int runCmd(struct Command *cmd){
     else if (strcmp(cmd->args[0], "exit") == 0) {
         exitShell();
     }else if (strcmp(cmd->args[0], "fg") == 0) {
-        printf("test");
+        printf("NOT IMPLEMENTED THE FG FUNCTION");
     }else if (strcmp(cmd->args[0], "jobs") == 0) {
-        printf("test");
+        printf("NOT IMPLEMENTED THE JOBS FUNCTION");
     }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">") ==0) {
         listToFile(cmd->args[2]); // IS THIS JUST JUST for the ls command??
     }else{
