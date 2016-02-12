@@ -57,6 +57,7 @@ struct Command{
  */
 int initializeCmdList(){
     struct Command *HeadOfList = (struct Command*)malloc(sizeof(struct Command));
+    HeadOfList->next = NULL;
     head = HeadOfList;
     tail = HeadOfList;
     head->num = 0;
@@ -116,8 +117,8 @@ struct Command * getCmd(){
 int addToHistory(struct Command *cmd){
     //We want to the tail of cmd to point to the head of our list
     cmd->next = head;
-    head = cmd;
-    //Then update the head pointer
+    head = cmd; //Then update the head pointer
+    
     return 0;
 }
 
@@ -137,7 +138,7 @@ int exitShell(){
 */
 int printCommand(struct Command *cmd){
     int i=0;
-    while (strcmp(cmd->args[i],"") != 0 && cmd->args[i] != NULL) {
+    while (cmd->args[i] != NULL) {
         printf("%s ",cmd->args[i]);
     }
     return 0;
@@ -180,10 +181,23 @@ int cd(char *arg){
 int printHistory(){
     struct Command *node = head;
     
+    printf("\n\t-----HISTORY-----\n");
+    //We want to print the 10 most recent commands
     for (int i = 0; i<10; i++) {
-        printf();
+        //Handle the case where we have less than 10 commands!
+        if(node->next == NULL)
+            break;
+        //First print the command number
+        printf("%d\t",node->num);
+        
+        //Then print the users command
+        printCommand(node);
+        
+        //Then update the node
+        node=node->next;
     }
     
+    return 0;
 }
 
 /*
