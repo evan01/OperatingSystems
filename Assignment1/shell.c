@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <ctype.h>
+#define NAME_MAX 100;
 
 size_t MAXLINE = 64;
 
@@ -95,13 +96,10 @@ struct Command * getCmd(){
         for (int j = 0; j < strlen(token); j++)
             if (token[j] <= 32)
                 token[j] = '\0';
-        if (strlen(token) > 0)
+        if (strlen(token) > 0){
             strcpy(cmd->args[argCount], token);
+        }
         argCount++;
-    }
-    //Fix args, so that they are valid when passed to execvp
-    for (int k=argCount-1; k<10; k++) {
-        strcpy(cmd->args[k], "");
     }
     
     //If the line is just a number then look up that number in history,
@@ -145,6 +143,49 @@ int printCommand(struct Command *cmd){
     return 0;
 }
 
+//print current directory
+int pwd(){
+    char buffer[100];
+    getcwd(buffer, NAME_MAX);
+    printf("CWD is: %s\n",buffer);
+    return 0;
+}
+
+//Redirect output to a text file
+int listToFile(char* file) {
+    
+    char* arg[] = {"ls", "-l", NULL};
+    printf("list to a file \n");
+    close(1);
+    //Open the file for reading and writing
+    int fd= open(file,O_RDWR| O_CREAT, S_IRUSR| S_IWUSR);
+    //dup2(fd, 1);
+    execvp(arg[0], arg);
+    
+    return 0;
+}
+
+//Change directory command
+int cd(char *arg){
+    if(chdir(arg)<0){
+        printf("Could not change directory\n");
+        return 1;
+    }
+    return 0;
+}
+
+/*
+    Print the last 10 commands the
+*/
+int printHistory(){
+    struct Command *node = head;
+    
+    for (int i = 0; i<10; i++) {
+        printf();
+    }
+    
+}
+
 /*
     This function will take in a command struct and run the command args in a child process
 */
@@ -155,17 +196,18 @@ int runChildProcess(struct Command *cmd){
         printf("Failed to fork a child process, shell exiting\n");
         exitShell();
     }else if (pid == 0){
-        /* In CHILD PROCESS */
-//        char *command;
+        char *command = (char *)malloc(64);
         //Format args to be passed into the exec vp function
-//        strcpy(command,cmd->args[0]);
-//        char *argv[10];
-//        for(int i=0;i<9;i++){
-//            strcpy(argv[i],cmd->args[i]);
-//        }
-//        if ((execvp(command, argv)) < 0) {
-//            printf("Invalid command, failed to run\n");
-//        }
+        //strcpy(command,cmd->args[0]);
+        //char **argv = (char **)malloc(10*sizeof(command));
+        char *argv[64] = {NULL};
+        for(int i=0;i<(cmd->argCount)-1;i++){
+            argv[i] = malloc(sizeof(command));
+            strcpy(argv[i],cmd->args[i]); //Can't do this because argv[i] isn't initialized
+        }
+        if ((execvp(argv[0], argv)) < 0) {
+            printf("Invalid command, failed to run\n");
+        }
         exit(0); // Make sure to terminate the child process! Or else things get wierd...
     }else{
         /* In PARENT PROCESS */
@@ -179,19 +221,6 @@ int runChildProcess(struct Command *cmd){
             //We also may to know if the process failed or not... using pipes apparently
         }
         
-        /**TESTING**/
-        char *command = (char *)malloc(64);
-        //Format args to be passed into the exec vp function
-        strcpy(command,cmd->args[0]);
-        char **argv = (char **)malloc(10*sizeof(command));
-        for(int i=0;i<9;i++){
-            argv[i] = malloc(sizeof(command));
-            strcpy(argv[i],cmd->args[i]); //Can't do this because argv[i] isn't initialized
-        }
-        if ((execvp(command, argv)) < 0) {
-            printf("Invalid command, failed to run\n");
-        }
-        /**END TESTING**/
     }
     return 0;
 }
@@ -203,21 +232,21 @@ int runChildProcess(struct Command *cmd){
 int runCmd(struct Command *cmd){
     //If the command is a built in Command ->'history', 'cd', 'pwd', 'exit', 'fg', 'jobs', '>(redirection)'
     if (strcmp(cmd->args[0], "history") == 0) {
-        printf("test");
+        printHistory();
     }else if (strcmp(cmd->args[0], "cd") == 0) {
-        printf("test");
+        cd(cmd->args[1]);
     }
     else if (strcmp(cmd->args[0], "pwd") == 0) {
-        printf("test");
+        pwd();
     }
     else if (strcmp(cmd->args[0], "exit") == 0) {
-        printf("test");
+        exitShell();
     }else if (strcmp(cmd->args[0], "fg") == 0) {
         printf("test");
     }else if (strcmp(cmd->args[0], "jobs") == 0) {
         printf("test");
     }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">") ==0) {
-        printf("test");
+        listToFile(cmd->args[2]); // IS THIS JUST JUST for the ls command??
     }else{
         //Else the command is not a built in Command, run using ExecVp in CHILD PROCESS
         if (cmd->error != 1) {
