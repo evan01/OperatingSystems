@@ -65,6 +65,43 @@ int initializeCmdList(){
 }
 
 /*
+    Given a number representing a command number, return pointer to struct
+    that represents that command
+*/
+struct Command * getCommandFromNum(int number){
+    struct Command *current = head;
+    
+    while (current != tail) {
+        if (current->num == number) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+
+/*
+ Will tell us whether a string is numeric or not
+ */
+int isNumeric (const char * s)
+{
+    if (s == NULL || *s == '\0' || isspace(*s))
+        return 0;
+    char * p;
+    strtod (s, &p);
+    return *p == '\0';
+}
+
+/*
+ Converts a string to a number
+ */
+long convertStringToInt(char * num){
+    char *ptr;
+    return strtol(num, &ptr, 10);
+}
+
+/*
     Important to note that this won't add the command to history
     This function just parses a possible command and handles the case
     where the user enters a number in search of another command
@@ -107,7 +144,21 @@ struct Command * getCmd(){
     }
     
     //If the line is just a number then look up that number in history,
-        //Update the new struct accordingly to that commands struct aa
+        //Update the new struct accordingly to that commands struct
+    if (isNumeric(cmd->args[0])) {
+        //First get the number
+        int num = (int)convertStringToInt(cmd->args[0]);
+        
+        //Then find the coresponding command associated with this in
+        struct Command *AssociatedCmd = getCommandFromNum(num);
+        if (AssociatedCmd != NULL) {
+            //Update the current cmd struct with the args of cmd
+            for (int l=0; l<10; l++) {
+                strcpy(cmd->args[l],AssociatedCmd->args[l]);
+            }
+        }
+        
+    }
     
     //Update the rest of the struct!
     cmd->argCount = argCount;
