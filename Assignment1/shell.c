@@ -3,26 +3,27 @@
 //  Assignment1
 //
 //  Created by Evan Knox on 2016-02-10.
+//  Copyright © 2016 NaliApplications. All rights reserved.
 //
 
 /*
-    Every command given will be counted as a line command
-        First string of the command is the name of the program file
-        The next strings are counted as arguments
-        If the last argument is &, the shell runs in the background
+ Every command given will be counted as a line command
+ First string of the command is the name of the program file
+ The next strings are counted as arguments
+ If the last argument is &, the shell runs in the background
  
  
-        1. Creating child process and executing command in the child
-            -If the command is a bad command don't store it in the history, warn user
-        2. Create a history feature
-            -User to access the 10 most recently entered commands starting at 1 and growing
-            -If there is no command with an id of whatever, print 'no command found in history'
-            -If they choose to enter the command make sure to echo the command on the users screen.
+ 1. Creating child process and executing command in the child
+ -If the command is a bad command don't store it in the history, warn user
+ 2. Create a history feature
+ -User to access the 10 most recently entered commands starting at 1 and growing
+ -If there is no command with an id of whatever, print 'no command found in history'
+ -If they choose to enter the command make sure to echo the command on the users screen.
  
-        3. Additional commands
-            -cd, pwd, exit are all to be done internally
-            -fg and jobs as well, need to bring a command from foreground to background
-            -output redirection
+ 3. Additional commands
+ -cd, pwd, exit are all to be done internally
+ -fg and jobs as well, need to bring a command from foreground to background
+ -output redirection
  
  */
 
@@ -34,6 +35,8 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include<signal.h>
 #define NAME_MAX 100;
 
 size_t MAXLINE = 64;
@@ -53,7 +56,7 @@ struct Command{
 };
 
 /*
-    Initialize our linked list, simple malloc, perhaps change this later...
+ Initialize our linked list, simple malloc, perhaps change this later...
  */
 int initializeCmdList(){
     struct Command *HeadOfList = (struct Command*)malloc(sizeof(struct Command));
@@ -65,9 +68,21 @@ int initializeCmdList(){
 }
 
 /*
-    Given a number representing a command number, return pointer to struct
-    that represents that command
-*/
+ This will print the entire command on the same line
+ */
+int printCommand(struct Command *cmd){
+    int i=0;
+    while (strcmp(cmd->args[i],"")!= 0) {
+        printf("%s ",cmd->args[i]);
+        i++;
+    }
+    return 0;
+}
+
+/*
+ Given a number representing a command number, return pointer to struct
+ that represents that command
+ */
 struct Command * getCommandFromNum(int number){
     struct Command *current = head;
     
@@ -79,7 +94,24 @@ struct Command * getCommandFromNum(int number){
     }
     return NULL;
 }
-
+/*
+    Lists all the currently running jobs in the bg
+*/
+struct Command * listJobs(){
+    struct Command *current = head;
+    
+    while (current != tail) {
+        if (current->bg == 1) {
+            if(kill(current->pid, 0)==0) {
+                printf("Process ID: %d \t",current->pid);
+                printCommand(current);
+            }
+        }
+        current = current->next;
+    }
+    printf("\n");
+    return NULL;
+}
 
 /*
  Will tell us whether a string is numeric or not
@@ -102,9 +134,9 @@ long convertStringToInt(char * num){
 }
 
 /*
-    Important to note that this won't add the command to history
-    This function just parses a possible command and handles the case
-    where the user enters a number in search of another command
+ Important to note that this won't add the command to history
+ This function just parses a possible command and handles the case
+ where the user enters a number in search of another command
  */
 struct Command * getCmd(){
     char *token, *loc;
@@ -113,7 +145,7 @@ struct Command * getCmd(){
     for (int i=0; i<10; i++) {
         strcpy(cmd->args[i], "");
     }
-
+    
     //Prompt the user to enter a command and store it as a line -->The ONLY USER INTERACTION
     printf("Shell>>");
     char *line = (char *) malloc (MAXLINE+1);
@@ -143,7 +175,7 @@ struct Command * getCmd(){
     }
     
     //If the line is just a number then look up that number in history,
-        //Update the new struct accordingly to that commands struct
+    //Update the new struct accordingly to that commands struct
     if (isNumeric(cmd->args[0])) {
         //First get the number
         int num = (int)convertStringToInt(cmd->args[0]);
@@ -194,17 +226,7 @@ int freeCmd(struct Command *cmd){
 int exitShell(){
     exit(0);
 }
-/*
- This will print the entire command on the same line
-*/
-int printCommand(struct Command *cmd){
-    int i=0;
-    while (strcmp(cmd->args[i],"")!= 0) {
-        printf("%s ",cmd->args[i]);
-        i++;
-    }
-    return 0;
-}
+
 
 //print current directory
 int pwd(){
@@ -232,15 +254,15 @@ int listToFile(char* file) {
 //Change directory command
 int cd(char *arg){
     if(chdir(arg)<0){
-        printf("Could not change directory\n");
+        printf("Failed change directory\n");
         return 1;
     }
     return 0;
 }
 
 /*
-    Print the last 10 commands the
-*/
+ Print the last 10 commands the
+ */
 int printHistory(){
     struct Command *node = head;
     
@@ -265,8 +287,8 @@ int printHistory(){
 }
 
 /*
-    This function will take in a command struct and run the command args in a child process
-*/
+ This function will take in a command struct and run the command args in a child process
+ */
 int runChildProcess(struct Command *cmd){
     int pid,status;
     
@@ -293,18 +315,33 @@ int runChildProcess(struct Command *cmd){
         }else{
             //We store the pid of the child process, for later
             cmd->pid = pid;
-            
-            //We also may to know if the process failed or not... using pipes apparently
         }
-        
     }
     return 0;
 }
 
+struct Command * fg(int processID){
+    struct Command *current = head;
+    
+    while (current != tail) {
+        if (current->bg == 1) {
+            if(current->pid==processID) {
+                current->bg=0;
+                runChildProcess(current);
+                current = tail;
+            }
+        }else {
+            printf("No such process is running in the background");
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
 /*
-    This function will take in a command struct and run the command 
-    based off of the contents of the struct
-*/
+ This function will take in a command struct and run the command
+ based off of the contents of the struct
+ */
 int runCmd(struct Command *cmd){
     //If the command is a built in Command ->'history', 'cd', 'pwd', 'exit', 'fg', 'jobs', '>(redirection)'
     if (strcmp(cmd->args[0], "history") == 0) {
@@ -318,9 +355,13 @@ int runCmd(struct Command *cmd){
     else if (strcmp(cmd->args[0], "exit") == 0) {
         exitShell();
     }else if (strcmp(cmd->args[0], "fg") == 0) {
-        printf("NOT IMPLEMENTED THE FG FUNCTION");
+        if(isNumeric(cmd->args[1])==1){
+            fg((int)convertStringToInt(cmd->args[1]));
+        }else{
+            printf("Invalid number entry");
+        }
     }else if (strcmp(cmd->args[0], "jobs") == 0) {
-        printf("NOT IMPLEMENTED THE JOBS FUNCTION");
+        listJobs();
     }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">") ==0) {
         listToFile(cmd->args[2]); // IS THIS JUST JUST for the ls command??
     }else{
@@ -341,7 +382,7 @@ int runCmd(struct Command *cmd){
                 printf("The command: ");
                 printCommand(cmd);
                 printf(" failed to execute last time, not entering it into history");
-
+                
             }else{
                 //The command was a bad history command
                 printf("No command found in history\n");
@@ -374,8 +415,5 @@ int main(){
         
         //Then run the users command, also adds to history
         runCmd(currentCmd);
-        
-        
-        
     }
 }
