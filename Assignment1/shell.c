@@ -3,7 +3,6 @@
 //  Assignment1
 //
 //  Created by Evan Knox on 2016-02-10.
-//  Copyright © 2016 NaliApplications. All rights reserved.
 //
 
 /*
@@ -161,7 +160,6 @@ struct Command * getCmd(){
             cmd->error = AssociatedCmd->error;
             cmd->num = head->num+1;
         }else{
-            printf("No command found in history\n");
             cmd->badHistoryCmd = 1; //Use this to basically not run the command later...
         }
         
@@ -327,7 +325,7 @@ int runCmd(struct Command *cmd){
         listToFile(cmd->args[2]); // IS THIS JUST JUST for the ls command??
     }else{
         //Else the command is not a built in Command, run using ExecVp in CHILD PROCESS
-        if (cmd->error != 1) {
+        if (cmd->error != 1 && cmd->badHistoryCmd != 1) {
             printf("Running the cmd ");
             for (int i=0; i<cmd->argCount; i++) {
                 printf("%s ",cmd->args[i]);
@@ -339,16 +337,22 @@ int runCmd(struct Command *cmd){
             
         }else{
             //Last time we executed the command it failed, warn the user
-            printf("The command: ");
-            printCommand(cmd);
-            printf(" failed to execute last time, not entering it into history");
+            if(cmd->badHistoryCmd !=1){
+                printf("The command: ");
+                printCommand(cmd);
+                printf(" failed to execute last time, not entering it into history");
+
+            }else{
+                //The command was a bad history command
+                printf("No command found in history\n");
+            }
             
         }
         
     }
     
     //The command should have executed by this point, add it to history if it didn't fail
-    if (cmd->error != 1 && strcmp(cmd->args[0],"history")!= 0) {
+    if (cmd->error != 1 && strcmp(cmd->args[0],"history")!= 0 && cmd->badHistoryCmd !=1) {
         addToHistory(cmd);
     }else{
         //If was a bad command or we don't want to add the command to history, free the cmd
