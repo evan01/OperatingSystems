@@ -50,6 +50,7 @@ struct Command{
     int argCount;
     int error; //When the command runs, whether it failed or not
     int pid; //For keeping track of background jobs (for fg and jobs)
+    int badHistoryCmd; //So that we don't run any history commands (makes output nicer)
 };
 
 /*
@@ -107,9 +108,7 @@ long convertStringToInt(char * num){
     where the user enters a number in search of another command
  */
 struct Command * getCmd(){
-    //Start the parsing
     char *token, *loc;
-    //int i = 0;
     //Create a struct representing the command, allocate memory for it
     struct Command *cmd = (struct Command*)malloc(sizeof(struct Command));
     for (int i=0; i<10; i++) {
@@ -139,8 +138,9 @@ struct Command * getCmd(){
                 token[j] = '\0';
         if (strlen(token) > 0){
             strcpy(cmd->args[argCount], token);
+            argCount++;
         }
-        argCount++;
+        
     }
     
     //If the line is just a number then look up that number in history,
@@ -156,13 +156,22 @@ struct Command * getCmd(){
             for (int l=0; l<10; l++) {
                 strcpy(cmd->args[l],AssociatedCmd->args[l]);
             }
+            cmd->bg = AssociatedCmd->bg;
+            cmd->argCount = AssociatedCmd->argCount;
+            cmd->error = AssociatedCmd->error;
+            cmd->num = head->num+1;
+        }else{
+            printf("No command found in history\n");
+            cmd->badHistoryCmd = 1; //Use this to basically not run the command later...
         }
         
+    }else{
+        //Not a numeric command!
+        cmd->argCount = argCount;
+        cmd->num = head->num+1;
     }
     
-    //Update the rest of the struct!
-    cmd->argCount = argCount;
-    cmd->num = head->num+1;
+    
     
     //return the struct that represents the command we're about to run
     return cmd;
@@ -270,7 +279,7 @@ int runChildProcess(struct Command *cmd){
         char *command = (char *)malloc(64);
         //Format args to be passed into the exec vp function
         char *argv[64] = {NULL};
-        for(int i=0;i<(cmd->argCount)-1;i++){
+        for(int i=0;i<(cmd->argCount);i++){
             argv[i] = malloc(sizeof(command));
             strcpy(argv[i],cmd->args[i]); //Can't do this because argv[i] isn't initialized
         }
@@ -282,7 +291,7 @@ int runChildProcess(struct Command *cmd){
         /* In PARENT PROCESS */
         if(cmd->bg == 0){
             //We have to wait for the process to finish
-            while (wait(&status) != pid);
+            while (wait(&status) != pid); // SURE THIS IS RIGHT??
         }else{
             //We store the pid of the child process, for later
             cmd->pid = pid;
@@ -319,25 +328,27 @@ int runCmd(struct Command *cmd){
     }else{
         //Else the command is not a built in Command, run using ExecVp in CHILD PROCESS
         if (cmd->error != 1) {
-            //Create a child process and run the command using execvp
-            printf("Running the command!! %s \n",cmd->args[0]);
+            printf("Running the cmd ");
+            for (int i=0; i<cmd->argCount; i++) {
+                printf("%s ",cmd->args[i]);
+            }
+            printf("\n");
             
             //Run the Command!
             runChildProcess(cmd);
             
-            //If the command doesn't execute set it as a failed command
-            //cmd->error = 1; // THIS SHOULD BE 1
         }else{
             //Last time we executed the command it failed, warn the user
             printf("The command: ");
             printCommand(cmd);
             printf(" failed to execute last time, not entering it into history");
+            
         }
         
     }
     
     //The command should have executed by this point, add it to history if it didn't fail
-    if (cmd->error != 1) {
+    if (cmd->error != 1 && strcmp(cmd->args[0],"history")!= 0) {
         addToHistory(cmd);
     }else{
         //If was a bad command or we don't want to add the command to history, free the cmd
