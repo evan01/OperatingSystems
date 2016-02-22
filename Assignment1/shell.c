@@ -2,30 +2,9 @@
 //  shell.c
 //  Assignment1
 //
-//  Created by Evan Knox on 2016-02-10.
-//  Copyright © 2016 NaliApplications. All rights reserved.
+//  Created by Evan Knox (Worked with Omar BaMashmos!)
+//  Student Number : 260502120
 //
-
-/*
- Every command given will be counted as a line command
- First string of the command is the name of the program file
- The next strings are counted as arguments
- If the last argument is &, the shell runs in the background
- 
- 
- 1. Creating child process and executing command in the child
- -If the command is a bad command don't store it in the history, warn user
- 2. Create a history feature
- -User to access the 10 most recently entered commands starting at 1 and growing
- -If there is no command with an id of whatever, print 'no command found in history'
- -If they choose to enter the command make sure to echo the command on the users screen.
- 
- 3. Additional commands
- -cd, pwd, exit are all to be done internally
- -fg and jobs as well, need to bring a command from foreground to background
- -output redirection
- 
- */
 
 #include <stdio.h>
 #include <stdio.h>
@@ -95,8 +74,8 @@ struct Command * getCommandFromNum(int number){
     return NULL;
 }
 /*
-    Lists all the currently running jobs in the bg
-*/
+ Lists all the currently running jobs in the bg
+ */
 struct Command * listJobs(){
     struct Command *current = head;
     
@@ -201,8 +180,6 @@ struct Command * getCmd(){
         cmd->num = head->num+1;
     }
     
-    
-    
     //return the struct that represents the command we're about to run
     return cmd;
 }
@@ -236,18 +213,39 @@ int pwd(){
     printf("CWD is: %s\n",buffer);
     return 0;
 }
-
+int isRedirect(struct Command *cmd) {
+    for(int i=0; i< 64;i++){
+        if((strcmp(cmd->args[i],">"))==0){
+            return i;
+        }
+        
+    }
+    return -1; // did not find redirection sign >
+    
+}
 //Redirect output to a text file
-int listToFile(char* file) {
-    
-    char* arg[] = {"ls", "-l", NULL};
+int listToFile(struct Command *cmd, int loc) {
     printf("list to a file \n");
-    close(1);
-    //Open the file for reading and writing
-    int fd= open(file,O_RDWR| O_CREAT, S_IRUSR| S_IWUSR);
-    //dup2(fd, 1);
-    execvp(arg[0], arg);
+    char *command = (char *)malloc(64);
+    char *argv[64] = {NULL};
+    for(int i=0;i<(cmd->argCount);i++){
+        argv[i] = malloc(sizeof(command));
+        strcpy(argv[i],cmd->args[i]); //Can't do this because argv[i] isn't initialized
+    }
     
+    if(fork()==0) {
+        close(1);
+        //Open the file for reading and writing
+        int fd= open(argv[loc+1],O_RDWR| O_CREAT, S_IRUSR| S_IWUSR);
+        argv[loc]=NULL;
+        argv[loc+1]=NULL;
+        if((strcmp(argv[0], "pwd"))==0) {
+            pwd();
+        }
+        else{
+            execvp(argv[0], argv);
+        }
+    }
     return 0;
 }
 
@@ -317,6 +315,7 @@ int runChildProcess(struct Command *cmd){
             cmd->pid = pid;
         }
     }
+    
     return 0;
 }
 
@@ -326,17 +325,22 @@ struct Command * fg(int processID){
     while (current != tail) {
         if (current->bg == 1) {
             if(current->pid==processID) {
-                current->bg=0;
-                runChildProcess(current);
+//                current->bg=0;
+//                runChildProcess(current);
+                current->bg = 0;
+                signal(SIGTTOU, SIG_IGN);
+                pid_t pid= (pid_t)processID;
+                tcsetpgrp(STDIN_FILENO, pid);
                 current = tail;
+                return NULL;
             }
-        }else {
-            printf("No such process is running in the background");
         }
         current = current->next;
     }
+    printf("No such process is running in the background");
     return NULL;
 }
+
 
 /*
  This function will take in a command struct and run the command
@@ -344,12 +348,15 @@ struct Command * fg(int processID){
  */
 int runCmd(struct Command *cmd){
     //If the command is a built in Command ->'history', 'cd', 'pwd', 'exit', 'fg', 'jobs', '>(redirection)'
+    //Check if we are doing a redirect command
+    int location=isRedirect(cmd);
+    
     if (strcmp(cmd->args[0], "history") == 0) {
         printHistory();
     }else if (strcmp(cmd->args[0], "cd") == 0) {
         cd(cmd->args[1]);
     }
-    else if (strcmp(cmd->args[0], "pwd") == 0) {
+    else if (strcmp(cmd->args[0], "pwd") == 0 && location <0) {
         pwd();
     }
     else if (strcmp(cmd->args[0], "exit") == 0) {
@@ -362,8 +369,8 @@ int runCmd(struct Command *cmd){
         }
     }else if (strcmp(cmd->args[0], "jobs") == 0) {
         listJobs();
-    }else if (strcmp(cmd->args[0], "ls") == 0 && strcmp(cmd->args[1], ">") ==0) {
-        listToFile(cmd->args[2]); // IS THIS JUST JUST for the ls command??
+    }else if (location>=0) {
+        listToFile(cmd, location); // IS THIS JUST JUST for the ls command??
     }else{
         //Else the command is not a built in Command, run using ExecVp in CHILD PROCESS
         if (cmd->error != 1 && cmd->badHistoryCmd != 1) {
@@ -403,8 +410,6 @@ int runCmd(struct Command *cmd){
     return 0;
 }
 
-
-
 int main(){
     initializeCmdList();//Need to initialize the linked list
     struct Command *currentCmd;
@@ -415,5 +420,7 @@ int main(){
         
         //Then run the users command, also adds to history
         runCmd(currentCmd);
+
+        
     }
 }
